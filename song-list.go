@@ -61,13 +61,15 @@ func (m SongListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m SongListModel) View() string {
 
 	var Songs string
+	
+	Songs += "\n     Songs      \n"
 
 	for i, Song := range m.Songs {
 
 		if m.focused && i == m.CurrentSong {
-			Songs += fmt.Sprintf("\n    %s \n", lipgloss.NewStyle().Background(lipgloss.Color("60")).Render(Song.Name))
+			Songs += fmt.Sprintf("\n %s \n", lipgloss.NewStyle().Background(lipgloss.Color("60")).Render(Song.Name))
 		} else {
-			Songs += fmt.Sprintf("\n    %s \n", Song.Name)
+			Songs += fmt.Sprintf("\n %s \n", lipgloss.NewStyle().Render(Song.Name))
 		}
 	}
 
