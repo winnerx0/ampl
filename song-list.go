@@ -11,16 +11,17 @@ type SongListModel struct {
 	Songs       []Song
 	CurrentSong int
 	focused     bool
+	error       ErrorMsg
 }
 
 type Song struct {
+	Default string
 	Name   string
 	active bool
 }
 
 func (m SongListModel) Init() tea.Cmd {
 	return nil
-
 }
 
 func (m *SongListModel) Focus() tea.Cmd {
@@ -50,8 +51,26 @@ func (m SongListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.CurrentSong++
 			return m, nil
+		
+		// case "enter":
+		// 	m.
+			
 		}
-	default:
+		
+	case SongAddMsg:
+
+		Songs, err := getSongs()
+		if err != nil {
+			m.error = ErrorMsg{
+				msg: err.Error(),
+			}
+			return m, nil
+		}
+		if msg.msg == "" {
+			m.Songs = Songs
+			return m, nil
+		}
+		m.Songs = filterAnyChar(Songs, msg.msg)
 		return m, nil
 	}
 
@@ -59,13 +78,11 @@ func (m SongListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m SongListModel) View() string {
-
 	var Songs string
-	
-	Songs += "\n     Songs      \n"
+
+	Songs += lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Width(24).Align(lipgloss.Center).Render("Songs")
 
 	for i, Song := range m.Songs {
-
 		if m.focused && i == m.CurrentSong {
 			Songs += fmt.Sprintf("\n %s \n", lipgloss.NewStyle().Background(lipgloss.Color("60")).Render(Song.Name))
 		} else {

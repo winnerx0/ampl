@@ -2,10 +2,8 @@ package main
 
 import (
 	"fmt"
-	"io/fs"
 	"os"
-	"os/user"
-	"path/filepath"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -17,6 +15,7 @@ type RootModel struct {
 	SongList                  SongListModel
 	width, height, focusIndex int
 	Player                    PlayerModel
+	Error                     ErrorMsg
 }
 
 func (m RootModel) Init() tea.Cmd {
@@ -34,6 +33,13 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "esc":
 			return m, tea.Quit
 		case "enter":
+			// show song information in player
+			if m.focusIndex == 1 {
+				m.Player.content = m.SongList.Songs[m.SongList.CurrentSong]
+				updated, cmd := m.Player.Update(msg)
+				m.Player = updated.(PlayerModel)
+				return m, cmd
+			}
 			return m, m.commit(m.textinput.Value())
 		case "j", "k":
 			if m.focusIndex == 1 { // Song-list has focus
@@ -55,50 +61,72 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 	case SongAddMsg:
-		m.SongList.Songs = append(m.SongList.Songs, Song{Name: msg.msg})
-		m.textinput.SetValue("")
-		return m, nil
+
+		updated, cmd := m.SongList.Update(msg)
+		m.SongList = updated.(SongListModel)
+		return m, cmd
 	}
 	m.textinput, cmd = m.textinput.Update(msg)
+
 	return m, cmd
 }
 
 func (m RootModel) View() string {
 	SongView := lipgloss.NewStyle().
-		Background(lipgloss.Color("#313244")).
-		Border(lipgloss.NormalBorder()).
-		Width(40).
-		Height(m.height - 3).
+		Background(lipgloss.Color("#1c1c2b")).
+		Width(30).
+		Height(m.height-3).
+		Padding(1, 2).
+		Border(lipgloss.RoundedBorder()).
 		Render(lipgloss.NewStyle().Foreground(lipgloss.Color("80")).Render(m.SongList.View()))
 
 	PlayerView := lipgloss.NewStyle().
-		Background(lipgloss.Color("#313244")).
+		Background(lipgloss.Color("#1c1c2b")).
 		Border(lipgloss.NormalBorder()).
 		Align(lipgloss.Center).
-		Width(m.width - 45).
+		Width(m.width - 35).
 		Height(m.height - 6).
 		Render(m.Player.View())
 
 	inputView := lipgloss.NewStyle().
-		Background(lipgloss.Color("#313244")).
+		Background(lipgloss.Color("#1c1c2b")).
 		Border(lipgloss.NormalBorder()).
-		Width(m.width - 45).
+		Width(m.width - 35).
 		Foreground(lipgloss.Color("86")).
 		Render(m.textinput.View())
 
 	layout := lipgloss.JoinHorizontal(lipgloss.Bottom, SongView, lipgloss.JoinVertical(lipgloss.Top, PlayerView, inputView))
 
 	return fmt.Sprintf("%s", layout)
-
 }
 
 func (m RootModel) commit(msg string) tea.Cmd {
 	return func() tea.Msg {
-
 		return SongAddMsg{
 			msg: msg,
 		}
 	}
+}
+
+func filterAnyChar(songs []Song, chars string) []Song {
+	var result []Song
+
+	for _, song := range songs {
+		if containsAnyChar(song.Name, chars) {
+			result = append(result, song)
+		}
+	}
+
+	return result
+}
+
+func containsAnyChar(word string, chars string) bool {
+	for _, c := range chars {
+		if strings.ContainsRune(word, c) {
+			return true
+		}
+	}
+	return false
 }
 
 func main() {
@@ -107,41 +135,31 @@ func main() {
 	ti.Focus()
 	ti.CharLimit = 400
 	ti.Width = 300
+	ti.SetValue("")
 
-	Songs := []Song{}
-
-	currentUser, err := user.Current()
-	
-	if err != nil {
-		fmt.Println("Error ", err)
-	}
-	
-	err = filepath.WalkDir(filepath.Join(currentUser.HomeDir, "Music"), func(path string, d fs.DirEntry, err error) error {
-
-		if err != nil {
-			return err
-		}
-
-		if !d.IsDir() {
-			Songs = append(Songs, Song{Name: d.Name()})
-		}
-
-		return nil
-	})
-
+	Songs, err := getSongs()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
 	m := RootModel{
-
 		textinput: ti,
 		SongList: SongListModel{
 			Songs:       Songs,
 			CurrentSong: 0,
 		},
-		Player:     PlayerModel{},
+		Player: PlayerModel{
+			content: Song{
+				Default: `
+	___    __  _______  __
+   /   |  /  |/  / __ \/ /
+  / /| | / /|_/ / /_/ / /
+ / ___ |/ /  / / ____/ /___
+/_/  |_/_/  /_/_/   /_____/
+
+A cool music player written in Go`,
+			}},
 		focusIndex: 0,
 	}
 	p := tea.NewProgram(m, tea.WithAltScreen())
@@ -149,5 +167,4 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-
 }
