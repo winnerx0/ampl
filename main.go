@@ -28,6 +28,9 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
+		m.Player.focused = true
+		updated, _ := m.Player.Update(msg)
+		m.Player = updated.(*PlayerModel)
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "esc":
@@ -35,6 +38,12 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			// show song information in player
 			if m.focusIndex == 1 {
+				m.focusIndex = 2
+				m.SongList.Blur()
+				songlistupdate, cmd := m.SongList.Update(msg)
+
+				m.SongList = songlistupdate.(SongListModel)
+
 				m.Player.content = m.SongList.Songs[m.SongList.CurrentSong]
 				m.Player.height = m.height
 				updated, cmd := m.Player.Update(msg)
@@ -59,22 +68,28 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "s":
 
-			if len(m.SongList.Songs) == m.SongList.CurrentSong+1 {
-				m.SongList.CurrentSong = 0
-			} else {
-				m.SongList.CurrentSong = m.SongList.CurrentSong + 1
+			if m.focusIndex == 2 {
+				if len(m.SongList.Songs) == m.SongList.CurrentSong+1 {
+					m.SongList.CurrentSong = 0
+				} else {
+					m.SongList.CurrentSong = m.SongList.CurrentSong + 1
+				}
+				m.Player.content.Name = m.SongList.Songs[m.SongList.CurrentSong].Name
+				return m, m.Player.startPlayBack()
+
 			}
-			m.Player.content.Name = m.SongList.Songs[m.SongList.CurrentSong].Name
-			return m, m.Player.startPlayBack()
+			return m, nil
 		case "tab":
 			if m.focusIndex == 0 {
 				m.textinput.Blur()
 				m.SongList.Focus()
 				m.focusIndex = 1
-			} else {
+			} else if m.focusIndex == 1 {
 				m.textinput.Focus()
 				m.SongList.Blur()
 				m.focusIndex = 0
+			} else if m.focusIndex == 2 {
+				m.focusIndex = 1
 			}
 			return m, nil
 		}

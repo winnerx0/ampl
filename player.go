@@ -100,6 +100,8 @@ func (m *PlayerModel) Blur() {
 func (m *PlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
+	case tea.WindowSizeMsg:
+		m.height = msg.Height
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
@@ -137,7 +139,7 @@ func (m PlayerModel) View() string {
 
 	buttonLayout := lipgloss.JoinHorizontal(lipgloss.Bottom, pause, skip, reset)
 
-	Metadata := fmt.Sprintf("%s\n\n%s", m.content.Name, m.metadata)
+	Metadata := fmt.Sprintf("%s\n\n", m.content.Name)
 	SongData := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Padding(0, 1).Render(Metadata)
 
 	SongLayout := lipgloss.JoinVertical(lipgloss.Center, SongData, buttonLayout)
