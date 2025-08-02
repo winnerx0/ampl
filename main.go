@@ -14,7 +14,7 @@ type RootModel struct {
 	textinput                 textinput.Model
 	SongList                  SongListModel
 	width, height, focusIndex int
-	Player                    PlayerModel
+	Player                    *PlayerModel
 	Error                     ErrorMsg
 }
 
@@ -36,8 +36,10 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// show song information in player
 			if m.focusIndex == 1 {
 				m.Player.content = m.SongList.Songs[m.SongList.CurrentSong]
+				m.Player.height = m.height
 				updated, cmd := m.Player.Update(msg)
-				m.Player = updated.(PlayerModel)
+				m.Player.focused = true
+				m.Player = updated.(*PlayerModel)
 				return m, cmd
 			}
 			return m, m.commit(m.textinput.Value())
@@ -48,6 +50,22 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.SongList = updated.(SongListModel)
 				return m, cmd
 			}
+		case "p":
+			updated, cmd := m.Player.Update(msg)
+			m.Player.focused = true
+			m.Player = updated.(*PlayerModel)
+
+			return m, cmd
+
+		case "s":
+
+			if len(m.SongList.Songs) == m.SongList.CurrentSong+1 {
+				m.SongList.CurrentSong = 0
+			} else {
+				m.SongList.CurrentSong = m.SongList.CurrentSong + 1
+			}
+			m.Player.content.Name = m.SongList.Songs[m.SongList.CurrentSong].Name
+			return m, m.Player.startPlayBack()
 		case "tab":
 			if m.focusIndex == 0 {
 				m.textinput.Blur()
@@ -97,7 +115,7 @@ func (m RootModel) View() string {
 
 	layout := lipgloss.JoinHorizontal(lipgloss.Bottom, SongView, lipgloss.JoinVertical(lipgloss.Top, PlayerView, inputView))
 
-	return fmt.Sprintf("%s", layout)
+	return layout
 }
 
 func (m RootModel) commit(msg string) tea.Cmd {
@@ -149,17 +167,19 @@ func main() {
 			Songs:       Songs,
 			CurrentSong: 0,
 		},
-		Player: PlayerModel{
+		Player: &PlayerModel{
 			content: Song{
 				Default: `
-	___    __  _______  __
+  	___    __  _______  __
    /   |  /  |/  / __ \/ /
   / /| | / /|_/ / /_/ / /
  / ___ |/ /  / / ____/ /___
 /_/  |_/_/  /_/_/   /_____/
 
 A cool music player written in Go`,
-			}},
+			},
+			isPaused: false,
+		},
 		focusIndex: 0,
 	}
 	p := tea.NewProgram(m, tea.WithAltScreen())

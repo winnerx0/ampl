@@ -16,8 +16,8 @@ type SongListModel struct {
 
 type Song struct {
 	Default string
-	Name   string
-	active bool
+	Name    string
+	active  bool
 }
 
 func (m SongListModel) Init() tea.Cmd {
@@ -51,12 +51,9 @@ func (m SongListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.CurrentSong++
 			return m, nil
-		
-		// case "enter":
-		// 	m.
-			
+
 		}
-		
+
 	case SongAddMsg:
 
 		Songs, err := getSongs()
@@ -84,9 +81,9 @@ func (m SongListModel) View() string {
 
 	for i, Song := range m.Songs {
 		if m.focused && i == m.CurrentSong {
-			Songs += fmt.Sprintf("\n %s \n", lipgloss.NewStyle().Background(lipgloss.Color("60")).Render(Song.Name))
+			Songs += fmt.Sprintf("\n%s\n", lipgloss.NewStyle().Background(lipgloss.Color("60")).Render(Song.Name))
 		} else {
-			Songs += fmt.Sprintf("\n %s \n", lipgloss.NewStyle().Render(Song.Name))
+			Songs += fmt.Sprintf("\n%s\n", lipgloss.NewStyle().Render(Song.Name))
 		}
 	}
 
