@@ -22,7 +22,7 @@ func getSongs() ([]Song, error){
 			return err
 		}
 
-		if !d.IsDir() {
+		if !d.IsDir() && filepath.Ext(filepath.Join(currentUser.HomeDir, "Music") + d.Name()) == ".mp3" {
 			Songs = append(Songs, Song{Name: d.Name()})
 		}
 
